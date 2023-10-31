@@ -15,7 +15,9 @@ use std::io::{Read, Write};
 
 #[tauri::command]
 fn read_file() -> String {
-    let mut file = std::fs::File::open("C:\\Users\\Log\\Desktop\\hosts").expect("open file error");
+    let mut file =
+        // std::fs::File::open("C:\\Windows\\System32\\drivers\\etc\\hosts").expect("open file error");
+           std::fs::File::open("C:\\Users\\Log\\Desktop\\hosts").expect("open file error");
     let mut df = String::new();
     file.read_to_string(&mut df)
         .expect("read file to String error");
@@ -27,6 +29,7 @@ fn write_file(str: String) {
     let mut file = OpenOptions::new()
         .write(true)
         .create(true)
+        // .open("C:\\Windows\\System32\\drivers\\etc\\hosts")
         .open("C:\\Users\\Log\\Desktop\\hosts")
         .expect("open file error");
     file.write_all(str.as_bytes()).expect("write file error");

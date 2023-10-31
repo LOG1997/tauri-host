@@ -154,27 +154,32 @@ export default function Home() {
         <div>
             <h1>Host</h1>
             {contextHolder}
-            <button onClick={readFile}>读取</button>
-            <button onClick={submit}>提交</button>
-            <button onClick={addItem}>添加</button>
-            <br></br>
+
             <Modal title="Basic Modal" open={isModalOpen} onOk={handleOk} onCancel={handleCancel}>
                 <Input addonBefore="IP" value={newContent.ip} onChange={(e) => { changeNewValue('ip', e) }} status={newContent.ipStatus}></Input>
                 <Input addonBefore="Domain" value={newContent.domain} onChange={(e) => { changeNewValue('domain', e) }} status={newContent.domainStatus}></Input>
                 <Input addonBefore="Note" value={newContent.note} onChange={(e) => { changeNewValue('note', e) }} status={newContent.noteStatus}></Input>
                 <Switch defaultChecked={newContent.active} onChange={(checked) => { changeNewValueActive(checked) }} />
             </Modal>
-            {
-                content.map((item, index) => {
-                    return <Space key={item.line} id={item.line as unknown as string + item.ip
-                    }>
-                        <Input addonBefore="IP" value={item.ip} onChange={(e) => { changeValue('ip', e, index) }} status={item.ipStatus}></Input>
-                        <Input addonBefore="Domain" value={item.domain} onChange={(e) => { changeValue('domain', e, index) }} status={item.domainStatus}></Input>
-                        <Input addonBefore="Note" value={item.note} onChange={(e) => { changeValue('note', e, index) }} status={item.noteStatus}></Input>
-                        <Switch defaultChecked={item.active} onChange={(checked) => { changeActive(checked, index) }} />
-                    </Space>
-                })
-            }
+            <div className='flex justify-center gap-12'>
+                <button onClick={readFile}>读取</button>
+                <button onClick={submit}>提交</button>
+                <button onClick={addItem}>添加</button>
+            </div>
+            <br></br>
+            <div className='flex flex-col items-center'>
+                {
+                    content.map((item, index) => {
+                        return <Space key={item.line} id={item.line as unknown as string + item.ip
+                        }>
+                            <Input addonBefore="IP" value={item.ip} onChange={(e) => { changeValue('ip', e, index) }} status={item.ipStatus}></Input>
+                            <Input addonBefore="Domain" value={item.domain} onChange={(e) => { changeValue('domain', e, index) }} status={item.domainStatus}></Input>
+                            <Input addonBefore="Note" value={item.note} onChange={(e) => { changeValue('note', e, index) }} status={item.noteStatus}></Input>
+                            <Switch defaultChecked={item.active} onChange={(checked) => { changeActive(checked, index) }} />
+                        </Space>
+                    })
+                }
+            </div>
         </div>
     )
 }
