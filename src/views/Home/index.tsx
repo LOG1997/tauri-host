@@ -1,15 +1,22 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { invoke } from '@tauri-apps/api/tauri';
 import { useHostObj } from '@/hooks/useHosts';
-import { UploadOutlined } from '@ant-design/icons';
+import { UploadOutlined, ExclamationCircleFilled } from '@ant-design/icons';
 import type { UploadProps } from 'antd';
-import { Space, Input, Switch, Modal, notification, Upload } from 'antd';
+import { Space, Input, Switch, Modal, notification, Upload, Button } from 'antd';
 import { IHostObj } from '@/types/type'
 import { validateValue } from '@/utils/index'
+import { useSize } from 'ahooks';
+
 
 type NotificationType = 'success' | 'info' | 'warning' | 'error';
+type SizeType = 'large' | 'middle' | 'small'
 export default function Home() {
     const [api, contextHolder] = notification.useNotification();
+    const { confirm } = Modal;
+    const containerRef = useRef(null);
+    const size = useSize(containerRef);
+    const [inputSize, setInputSize] = useState<SizeType>('small')
     const [originalContent, setOriginalContent] = useState<Array<string>>([])
     const [isModalOpen, setIsModalOpen] = useState(false);
     const { content, setContent } = useHostObj(originalContent)
@@ -25,8 +32,10 @@ export default function Home() {
         noteStatus: ''
     })
     const readFile = async () => {
+        setOriginalContent([])
         invoke("read_file").then((res: any) => {
-            setOriginalContent(res.split("\r\n"));
+            const resArr = res.split("\r\n")
+            setOriginalContent(resArr.slice(0));
         })
     }
     const writeFile = async (data: Array<string>) => {
@@ -34,6 +43,7 @@ export default function Home() {
         invoke("write_file", { str: resData }).then(
             () => {
                 openNotificationWithIcon('success', "写入成功")
+                readFile()
             }
         )
     }
@@ -73,14 +83,18 @@ export default function Home() {
             openNotificationWithIcon('error', "请先导入")
             return;
         }
-        for (let i = 0; i < content.length; i++) {
-            if (content[i].ipStatus == 'error' || content[i].domainStatus == 'error' || content[i].noteStatus == 'error') {
-                openNotificationWithIcon('error', "输入不合法，请检查")
-                return;
+
+        const writeData = () => {
+            for (let i = 0; i < content.length; i++) {
+                if (content[i].ipStatus == 'error' || content[i].domainStatus == 'error' || content[i].noteStatus == 'error') {
+                    openNotificationWithIcon('error', "输入不合法，请检查")
+                    return;
+                }
+                originalContent[content[i].line] = convertToString(content[i])
             }
-            originalContent[content[i].line] = convertToString(content[i])
+            writeFile(originalContent)
         }
-        writeFile(originalContent);
+        showConfirm('确定写入 ? ', writeData)
     }
 
     const addItem = () => {
@@ -102,6 +116,16 @@ export default function Home() {
         setIsModalOpen(true);
         setNewContent(itemObj);
     }
+
+    const deleteItem = (item: IHostObj, index: number) => {
+        const delData = () => {
+            content.splice(index, 1)
+            setContent(content.slice(0))
+        }
+
+        showConfirm('确定要删除 ? ', delData)
+    }
+
     const openNotificationWithIcon = (type: NotificationType, message: string) => {
         api[type]({
             message: '提醒',
@@ -109,6 +133,19 @@ export default function Home() {
                 message,
         });
     };
+    const showConfirm = (text: string, confirmFn: any) => {
+        confirm({
+            title: text,
+            icon: <ExclamationCircleFilled />,
+            content: 'Some descriptions',
+            onOk() {
+                confirmFn();
+            },
+            onCancel() {
+            },
+        });
+    };
+
     const handleOk = () => {
         if (newContent.ipStatus == "error" || newContent.domainStatus == "error" || newContent.noteStatus == "error") {
             openNotificationWithIcon('error', "输入不合法，请检查")
@@ -150,8 +187,18 @@ export default function Home() {
         res = res + ipStr + domainStr + '# ' + item.note
         return res
     }
+
+    useEffect(() => {
+        if (size && size?.width < 1200) {
+            setInputSize('middle')
+        }
+        if (size && size?.width > 1600) {
+            setInputSize('large')
+        }
+
+    }, [size])
     return (
-        <div>
+        <div className='w-full' ref={containerRef}>
             <h1>Host</h1>
             {contextHolder}
 
@@ -163,19 +210,20 @@ export default function Home() {
             </Modal>
             <div className='flex justify-center gap-12'>
                 <button onClick={readFile}>读取</button>
-                <button onClick={submit}>提交</button>
+                <button onClick={submit}>写入</button>
                 <button onClick={addItem}>添加</button>
             </div>
             <br></br>
-            <div className='flex flex-col items-center'>
+            <div className='flex flex-col items-center gap-3'>
                 {
                     content.map((item, index) => {
                         return <Space key={item.line} id={item.line as unknown as string + item.ip
                         }>
-                            <Input addonBefore="IP" value={item.ip} onChange={(e) => { changeValue('ip', e, index) }} status={item.ipStatus}></Input>
-                            <Input addonBefore="Domain" value={item.domain} onChange={(e) => { changeValue('domain', e, index) }} status={item.domainStatus}></Input>
-                            <Input addonBefore="Note" value={item.note} onChange={(e) => { changeValue('note', e, index) }} status={item.noteStatus}></Input>
+                            <Input size={inputSize} addonBefore="IP" value={item.ip} onChange={(e) => { changeValue('ip', e, index) }} status={item.ipStatus}></Input>
+                            <Input size={inputSize} addonBefore="Domain" value={item.domain} onChange={(e) => { changeValue('domain', e, index) }} status={item.domainStatus}></Input>
+                            <Input size={inputSize} addonBefore="Note" value={item.note} onChange={(e) => { changeValue('note', e, index) }} status={item.noteStatus}></Input>
                             <Switch defaultChecked={item.active} onChange={(checked) => { changeActive(checked, index) }} />
+                            <Button type="default" danger onClick={() => { deleteItem(item, index) }}>删除</Button>
                         </Space>
                     })
                 }
